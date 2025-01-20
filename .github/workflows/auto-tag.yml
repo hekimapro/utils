@@ -47,10 +47,13 @@ jobs:
     - name: Create new tag
       run: |
         new_tag=${{ steps.increment_version.outputs.new_tag }}
+        echo "Creating new tag: $new_tag"
         git tag $new_tag
-        # Push the new tag using the GITHUB_TOKEN
+        git show-ref --tags  # This will show the tags in the local repository for debugging
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-        git push origin $new_tag
+        git push origin $new_tag  # Make sure the tag is pushed to the remote
 
     - name: Push changes
-      run: git push origin main
+      run: |
+        git push origin main  # Ensure both the tag and commit are pushed
+
