@@ -1,0 +1,55 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+
+# Go build artifacts
+bin/
+build/
+
+# Vendor directory (if not using Go modules)
+vendor/
+
+# Dependency directories
+Godeps/
+
+# Log files
+*.log
+
+# Environment variables and configuration files
+.env
+.env.*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.iml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.swp
+*.swo
+*.tmp
+*.bak
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Node.js-related files (if you use JavaScript/TypeScript utils)
+node_modules/
+
+# Coverage and test output
+*.out
+coverage.out
+*.cov
+
+# Secrets
+secrets/
+*.key
+*.crt
