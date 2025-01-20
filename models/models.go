@@ -39,3 +39,11 @@ type EmailDetails struct {
 	HTML       string   // HTML message
 	Attachments []string // Paths to files to attach
 }
+
+// ServerResponse represents the structure of the JSON response.
+// Success indicates whether the operation was successful.
+// Message contains the response message or payload (could be string, object, etc.).
+type ServerResponse struct {
+	Success bool        `json:"success"` // Indicates whether the operation was successful.
+	Message interface{} `json:"message"` // Contains the response message or payload.
+}

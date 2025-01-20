@@ -1,4 +1,4 @@
-package utils
+package encryption
 
 import (
 	"bytes"
@@ -12,14 +12,14 @@ import (
 	"github.com/hekimapro/utils/models"
 )
 
-// pad applies PKCS7 padding to the plaintext.
+// pad applies PKCS7 padding to the plaintext to ensure the data length is a multiple of the block size.
 func pad(src []byte, blockSize int) []byte {
 	padding := blockSize - len(src)%blockSize
 	padText := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(src, padText...)
 }
 
-// unpad removes PKCS7 padding from the plaintext.
+// unpad removes PKCS7 padding from the decrypted plaintext.
 func unpad(src []byte) ([]byte, error) {
 	length := len(src)
 	if length == 0 {
@@ -32,10 +32,13 @@ func unpad(src []byte) ([]byte, error) {
 	return src[:length-padding], nil
 }
 
-// Encrypts the provided data using the specified parameters.
+// Encrypt encrypts the provided data using AES encryption in CBC mode with the specified parameters.
+// encryptionKey: The key used for encryption (must be 16, 24, or 32 bytes).
+// initializationVector: The IV used for CBC mode (must be 16 bytes).
+// encryptionType: The desired encryption format ("base64" or "hex").
 func Encrypt(data interface{}, encryptionKey, initializationVector, encryptionType string) (models.EncryptReturnType, error) {
 
-	// Validate parameters
+	// Validate encryption parameters
 	if encryptionKey == "" {
 		return models.EncryptReturnType{}, errors.New("encryption key must be a non-empty string")
 	}
@@ -43,32 +46,32 @@ func Encrypt(data interface{}, encryptionKey, initializationVector, encryptionTy
 		return models.EncryptReturnType{}, errors.New("initialization vector must be exactly 16 bytes long")
 	}
 	if encryptionType != "base64" && encryptionType != "hex" {
-		return models.EncryptReturnType{}, errors.New("invalid encryption type (base64 || hex)")
+		return models.EncryptReturnType{}, errors.New("invalid encryption type (use 'base64' or 'hex')")
 	}
 
-	// Convert data to a string
+	// Convert data to JSON format
 	dataToEncrypt, err := json.Marshal(data)
 	if err != nil {
 		return models.EncryptReturnType{}, err
 	}
 
-	// Create cipher block
+	// Create AES cipher block
 	block, err := aes.NewCipher([]byte(encryptionKey))
 	if err != nil {
 		return models.EncryptReturnType{}, err
 	}
 
-	// Pad data to block size
+	// Pad the data to match block size
 	paddedData := pad(dataToEncrypt, aes.BlockSize)
 
-	// Create CBC mode encrypter
+	// Initialize CBC encrypter
 	mode := cipher.NewCBCEncrypter(block, []byte(initializationVector))
 
 	// Encrypt data
 	ciphertext := make([]byte, len(paddedData))
 	mode.CryptBlocks(ciphertext, paddedData)
 
-	// Convert encrypted data to the specified encryption type
+	// Encode encrypted data based on specified format
 	var encryptedPayload string
 	if encryptionType == "base64" {
 		encryptedPayload = base64.StdEncoding.EncodeToString(ciphertext)
@@ -79,10 +82,14 @@ func Encrypt(data interface{}, encryptionKey, initializationVector, encryptionTy
 	return models.EncryptReturnType{Payload: encryptedPayload}, nil
 }
 
-// Decrypts the provided encrypted data using the specified parameters.
+// Decrypt decrypts the provided encrypted data using AES encryption in CBC mode with the specified parameters.
+// encryptedData: The encrypted data in the specified format ("base64" or "hex").
+// encryptionKey: The key used for decryption (must be 16, 24, or 32 bytes).
+// initializationVector: The IV used for CBC mode (must be 16 bytes).
+// encryptionType: The encryption format ("base64" or "hex") that was used for encryption.
 func Decrypt(encryptedData models.EncryptReturnType, encryptionKey, initializationVector, encryptionType string) (interface{}, error) {
 
-	// Validate parameters
+	// Validate decryption parameters
 	if encryptionKey == "" {
 		return nil, errors.New("encryption key must be a non-empty string")
 	}
@@ -93,7 +100,7 @@ func Decrypt(encryptedData models.EncryptReturnType, encryptionKey, initializati
 		return nil, errors.New("invalid encryption type")
 	}
 
-	// Decode encrypted data from the specified encryption type
+	// Decode encrypted data based on the specified format
 	var ciphertext []byte
 	var err error
 	if encryptionType == "base64" {
@@ -105,26 +112,26 @@ func Decrypt(encryptedData models.EncryptReturnType, encryptionKey, initializati
 		return nil, err
 	}
 
-	// Create cipher block
+	// Create AES cipher block for decryption
 	block, err := aes.NewCipher([]byte(encryptionKey))
 	if err != nil {
 		return nil, err
 	}
 
-	// Create CBC mode decrypter
+	// Initialize CBC decrypter
 	mode := cipher.NewCBCDecrypter(block, []byte(initializationVector))
 
 	// Decrypt data
 	plaintext := make([]byte, len(ciphertext))
 	mode.CryptBlocks(plaintext, ciphertext)
 
-	// Unpad data
+	// Remove padding from decrypted data
 	plaintext, err = unpad(plaintext)
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert decrypted data to original format
+	// Convert decrypted data back to original format (interface)
 	var decryptedData interface{}
 	err = json.Unmarshal(plaintext, &decryptedData)
 	if err != nil {
