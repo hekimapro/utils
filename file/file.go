@@ -10,7 +10,7 @@ import (
 )
 
 // UploadFile handles the uploading of a single file.
-func UploadFile(file io.Reader, handlerFilename, uploadDirectory string) (string, error) {
+func UploadFile(file io.Reader, headerFilename, uploadDirectory string) (string, error) {
 	// Ensure the upload directory exists.
 	err := os.MkdirAll(uploadDirectory, os.ModePerm)
 	if err != nil {
@@ -19,7 +19,7 @@ func UploadFile(file io.Reader, handlerFilename, uploadDirectory string) (string
 	}
 
 	// Generate a unique filename with the original file extension.
-	uniqueFilename := uuid.New().String() + filepath.Ext(handlerFilename)
+	uniqueFilename := uuid.New().String() + filepath.Ext(headerFilename)
 	destinationPath := filepath.Join(uploadDirectory, uniqueFilename)
 
 	// Create the destination file.
@@ -61,21 +61,21 @@ func DeleteFile(filename, uploadDirectory string) error {
 // files: A slice of file readers and their original filenames.
 // uploadDirectory: The directory where files should be uploaded.
 // Returns a slice of unique filenames or an error if the upload fails for any file.
-func UploadMultipleFiles(files []io.Reader, handlerFilenames []string, uploadDirectory string) ([]string, error) {
-	if len(files) != len(handlerFilenames) {
+func UploadMultipleFiles(files []io.Reader, headerFilenames []string, uploadDirectory string) ([]string, error) {
+	if len(files) != len(headerFilenames) {
 		return nil, fmt.Errorf("mismatch between number of files and filenames")
 	}
 
 	uploadedFiles := make([]string, 0, len(files))
 
 	for i, file := range files {
-		uniqueFilename, err := UploadFile(file, handlerFilenames[i], uploadDirectory)
+		uniqueFilename, err := UploadFile(file, headerFilenames[i], uploadDirectory)
 		if err != nil {
 			// Rollback: Delete already uploaded files on failure.
 			for _, filename := range uploadedFiles {
 				_ = DeleteFile(filename, uploadDirectory)
 			}
-			return nil, fmt.Errorf("failed to upload file %s: %w", handlerFilenames[i], err)
+			return nil, fmt.Errorf("failed to upload file %s: %w", headerFilenames[i], err)
 		}
 		uploadedFiles = append(uploadedFiles, uniqueFilename)
 	}
