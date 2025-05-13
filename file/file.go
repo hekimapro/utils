@@ -27,7 +27,7 @@ func toKebabCase(stringValue string) string {
 }
 
 // UploadFile uploads a single file to the specified directory
-// Optionally converts images to WebP, generates a unique kebab-case filename with a UUID, and copies the file content
+// Optionally converts images to WebP, updates extension if converted, generates a unique kebab-case filename with a UUID, and copies the file content
 // Returns the unique filename or an error if the upload fails
 func UploadFile(file io.Reader, fileName, uploadDirectory string, convertToWebP bool) (string, error) {
 	// Ensure the upload directory exists with proper permissions
@@ -46,8 +46,11 @@ func UploadFile(file io.Reader, fileName, uploadDirectory string, convertToWebP 
 
 	// Extract file extension and base name from the provided filename
 	ext := filepath.Ext(fileName)
+	// Update extension to .webp for supported image formats if converted
 	if convertToWebP {
-		ext = ".webp"
+		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
+			ext = ".webp"
+		}
 	}
 	base := strings.TrimSuffix(filepath.Base(fileName), ext)
 
