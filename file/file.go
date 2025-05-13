@@ -46,6 +46,9 @@ func UploadFile(file io.Reader, fileName, uploadDirectory string, convertToWebP 
 
 	// Extract file extension and base name from the provided filename
 	ext := filepath.Ext(fileName)
+	if convertToWebP {
+		ext = ".webp"
+	}
 	base := strings.TrimSuffix(filepath.Base(fileName), ext)
 
 	// Convert base name to kebab-case for consistency
