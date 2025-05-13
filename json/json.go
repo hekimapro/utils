@@ -8,33 +8,32 @@ import (
 	"github.com/hekimapro/utils/models"
 )
 
-// RespondWithJSON writes a JSON response to the http.ResponseWriter.
-// Response: The HTTP response writer to send the response.
-// StatusCode: The HTTP status code to indicate the outcome of the request.
-// Payload: The data to be included in the response body.
+// RespondWithJSON writes a JSON response to the HTTP response writer
+// Constructs a standardized server response with payload and success flag
+// Sets the appropriate headers, status code, and writes the JSON data
 func RespondWithJSON(Response http.ResponseWriter, StatusCode int, Payload interface{}) {
-	// Construct the ServerResponse object.
-	// Success is determined based on whether the status code is a successful 2xx status code.
+	// Create a ServerResponse object with the provided payload
+	// Set success flag based on whether the status code is in the 2xx range
 	ResponseData := &models.ServerResponse{
-		Message: Payload,                            // Set the message or payload of the response.
-		Success: StatusCode < http.StatusBadRequest, // Set success flag based on status code (2xx success).
+		Message: Payload,                            // Include the payload in the response
+		Success: StatusCode < http.StatusBadRequest, // Success is true for 2xx status codes
 	}
 
-	// Convert the response data to JSON format.
+	// Marshal the response data to JSON format
 	ResponseDataJSON, err := json.Marshal(ResponseData)
 	if err != nil {
-		// Log the error and set the HTTP status code to 500 if JSON conversion fails.
+		// Log the JSON marshaling error and return a 500 status code
 		log.Printf("JSON conversion error: %v", err.Error())
 		Response.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	// Set the Content-Type header to indicate that the response body is in JSON format.
+	// Set the Content-Type header to indicate JSON response
 	Response.Header().Add("Content-Type", "application/json")
 
-	// Set the HTTP status code for the response.
+	// Set the HTTP status code for the response
 	Response.WriteHeader(StatusCode)
 
-	// Write the JSON response to the http.ResponseWriter.
+	// Write the JSON data to the response writer
 	Response.Write(ResponseDataJSON)
 }

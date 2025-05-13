@@ -2,27 +2,26 @@ package encryption
 
 import "golang.org/x/crypto/bcrypt"
 
-// CreateHash generates a bcrypt hash from the provided password.
-// Password: The plain text password to be hashed.
-// Returns the hashed password string, or an error if the hashing fails.
+// CreateHash generates a bcrypt hash from a plain text password
+// Uses the default bcrypt cost factor to create a secure hash
+// Returns the hashed password as a string or an error if hashing fails
 func CreateHash(Password string) (string, error) {
-	// Generate a bcrypt hash of the password using the default cost factor.
+	// Generate a bcrypt hash from the password with the default cost
 	HashedString, err := bcrypt.GenerateFromPassword([]byte(Password), bcrypt.DefaultCost)
 	if err != nil {
-		// Return an empty string and the error if hashing fails.
+		// Return an empty string and the error if hashing fails
 		return "", err
 	}
-	// Return the hashed password as a string.
+	// Convert the hashed bytes to a string and return
 	return string(HashedString), nil
 }
 
-// CompareWithHash compares a password with a bcrypt hash.
-// HashedString: The bcrypt hashed password.
-// Password: The plain text password to be checked.
-// Returns true if the password matches the hash, false otherwise.
+// CompareWithHash verifies a plain text password against a bcrypt hash
+// Checks if the provided password matches the hashed password
+// Returns true if the password matches, false otherwise
 func CompareWithHash(HashedString string, Password string) bool {
-	// Compare the hashed password with the plain text password.
+	// Compare the hashed password with the plain text password
 	err := bcrypt.CompareHashAndPassword([]byte(HashedString), []byte(Password))
-	// Return true if no error (passwords match), false if there is an error.
+	// Return true if the passwords match (no error), false if they don’t
 	return err == nil
 }

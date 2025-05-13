@@ -8,49 +8,48 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-// SendEmail sends an email using the provided SMTP server details and email content.
-// smtpHost: The SMTP server host (e.g., "smtp.gmail.com").
-// smtpPort: The SMTP server port (e.g., 587 for TLS).
-// username: The SMTP username (e.g., email address of sender).
-// password: The SMTP password (or app-specific password).
-// InsecureSkipVerify: A flag to allow insecure SSL connections (use with caution).
+// SendEmail sends an email using the provided SMTP server details and email content
+// Configures an email with sender, recipients, subject, body, and attachments
+// Connects to the SMTP server and sends the email, supporting TLS configuration
+// Returns an error if the email sending fails, otherwise nil
 func SendEmail(smtpHost string, smtpPort int, username, password string, InsecureSkipVerify bool, details models.EmailDetails) error {
-	// Create a new gomail message instance.
+	// Initialize a new gomail message instance for constructing the email
 	mail := gomail.NewMessage()
 
-	// Set sender and recipient(s) for the email.
+	// Set the sender and recipient(s) in the email headers
 	mail.SetHeader("From", details.From)
 	mail.SetHeader("To", details.To...)
 
-	// Set the email subject.
+	// Set the email subject in the header
 	mail.SetHeader("Subject", details.Subject)
 
-	// Add the plain text body if provided.
+	// Add a plain text body if provided in the email details
 	if details.Text != "" {
 		mail.SetBody("text/plain", details.Text)
 	}
-	// Add the HTML body as an alternative if provided.
+
+	// Add an HTML body as an alternative if provided in the email details
 	if details.HTML != "" {
 		mail.AddAlternative("text/html", details.HTML)
 	}
 
-	// Attach files if any are provided.
+	// Attach any files specified in the email details
 	for _, file := range details.Attachments {
 		mail.Attach(file)
 	}
 
-	// Create a new SMTP dialer for connecting to the SMTP server.
+	// Create an SMTP dialer with the provided host, port, username, and password
 	dialer := gomail.NewDialer(smtpHost, smtpPort, username, password)
 
-	// Configure the dialer to allow insecure SSL connections (useful for development).
+	// Configure the TLS settings to allow insecure connections if specified
 	dialer.TLSConfig = &tls.Config{InsecureSkipVerify: InsecureSkipVerify}
 
-	// Attempt to send the email.
+	// Attempt to connect to the SMTP server and send the email
 	if err := dialer.DialAndSend(mail); err != nil {
-		// Return the error if the email sending fails.
+		// Return a wrapped error if the email sending fails
 		return fmt.Errorf("failed to send email: %v", err)
 	}
 
-	// Return nil if the email was sent successfully.
+	// Return nil to indicate successful email sending
 	return nil
 }
