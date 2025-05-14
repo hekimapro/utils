@@ -6,58 +6,64 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 )
 
-// extractDatabaseName parses the given database URI and retrieves the database name
-// Extracts the database name from the URI path for logging or reference
-// Returns the database name or an error if parsing fails
+// extractDatabaseName parses a database URI to extract the database name
+// Returns the database name or an error if the URI is invalid or lacks a name
 func extractDatabaseName(databaseURI string) (string, error) {
-	// Parse the database URI to extract its components
+	// Parse the database URI
 	parsedURI, err := url.Parse(databaseURI)
 	if err != nil {
 		return "", fmt.Errorf("invalid database URI provided: %w", err)
 	}
-
-	// Split the URI path into segments to locate the database name
+	// Split the path to extract the database name
 	pathParts := strings.Split(parsedURI.Path, "/")
+	// Validate that a database name is present
 	if len(pathParts) < 2 || pathParts[1] == "" {
 		return "", fmt.Errorf("database name not found in URI")
 	}
-
-	// Return the database name from the path
+	// Return the database name
 	return pathParts[1], nil
 }
 
 // ConnectToDatabase establishes a connection to a PostgreSQL database
-// Uses the provided database URI to open and verify a connection
-// Returns a sql.DB instance for database operations or an error if connection fails
+// Configures connection pooling and verifies connectivity
+// Returns the database handle or an error if the connection fails
 func ConnectToDatabase(databaseURI string) (*sql.DB, error) {
-	// Extract the database name for logging purposes
+	// Extract the database name from the URI
 	databaseName, err := extractDatabaseName(databaseURI)
 	if err != nil {
-		// Log the error for debugging
+		// Log and return error if extraction fails
 		log.Printf("[ERROR] Failed to extract database name: %v", err)
 		return nil, err
 	}
 
-	// Open a connection to the PostgreSQL database using the provided URI
+	// Open a connection to the PostgreSQL database
 	db, err := sql.Open("postgres", databaseURI)
 	if err != nil {
-		// Log the error and return a wrapped error for context
+		// Log and return wrapped error if connection opening fails
 		log.Printf("[ERROR] Failed to open database connection: %v", err)
 		return nil, fmt.Errorf("unable to open database connection: %w", err)
 	}
 
-	// Verify the connection by pinging the database
+	// Configure connection pool for high concurrency
+	db.SetMaxOpenConns(450)                 // Set maximum open connections to 450
+	db.SetMaxIdleConns(50)                  // Set maximum idle connections to 50
+	db.SetConnMaxLifetime(2 * time.Hour)    // Set connection lifetime to 2 hours
+	db.SetConnMaxIdleTime(15 * time.Minute) // Set idle connection timeout to 15 minutes
+
+	// Verify database connectivity with a ping
 	if err := db.Ping(); err != nil {
-		// Log the error and return a wrapped error for context
+		// Log and return wrapped error if ping fails
 		log.Printf("[ERROR] Failed to ping database: %v", err)
 		return nil, fmt.Errorf("unable to connect to the database: %w", err)
 	}
 
-	// Log successful connection with the database name
+	// Log successful connection
 	log.Printf("[INFO] Successfully connected to the database: %s", databaseName)
+	// Return the database handle
 	return db, nil
 }
