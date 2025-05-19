@@ -6,36 +6,38 @@ on:
       - main
 
 jobs:
-  tag:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Set up Git
         run: |
           git config --global user.name "hekimapro"
           git config --global user.email "taprotec@gmail.com"
 
-      - name: Get latest tag
+      - name: Get current tag
         id: get_tag
         run: |
           latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
           echo "Latest tag: $latest_tag"
           echo "latest_tag=$latest_tag" >> "$GITHUB_OUTPUT"
 
-      - name: Increment patch version
+      - name: Increment version (patch)
         id: increment_version
         run: |
           current_tag="${{ steps.get_tag.outputs.latest_tag }}"
-          # Extract version numbers
-          major=$(echo "$current_tag" | cut -d. -f1 | tr -d 'v')
-          minor=$(echo "$current_tag" | cut -d. -f2)
-          patch=$(echo "$current_tag" | cut -d. -f3)
-          # Increment patch
-          new_patch=$((patch + 1))
-          new_tag="v$major.$minor.$new_patch"
+          if [[ ! "$current_tag" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Invalid tag format: $current_tag"
+            exit 1
+          fi
+          major=$(echo $current_tag | cut -d. -f1 | tr -d 'v')
+          minor=$(echo $current_tag | cut -d. -f2)
+          patch=$(echo $current_tag | cut -d. -f3)
+          patch=$((patch + 1))
+          new_tag="v$major.$minor.$patch"
           echo "New tag: $new_tag"
           echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
 
