@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -11,96 +12,82 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// determineEnvironment checks for SSL certificate and key files
-// Returns "Production" if both files exist, otherwise "Development"
-func determineEnvironment(SSLKeyPath, SSLCertPath string) string {
-	// Check if the SSL key file exists
-	if _, err := os.Stat(SSLKeyPath); os.IsNotExist(err) {
+// determineEnvironment returns "Production" if both SSL cert and key files exist, otherwise "Development"
+func determineEnvironment(sslKeyPath, sslCertPath string) string {
+	if _, err := os.Stat(sslKeyPath); errors.Is(err, os.ErrNotExist) {
 		return "Development"
 	}
-	// Check if the SSL certificate file exists
-	if _, err := os.Stat(SSLCertPath); os.IsNotExist(err) {
+	if _, err := os.Stat(sslCertPath); errors.Is(err, os.ErrNotExist) {
 		return "Development"
 	}
-	// Return Production if both files are present
 	return "Production"
 }
 
-// StartServer initializes and starts an HTTP or HTTPS server with graceful shutdown
-// Runs the server based on the environment and handles context cancellation
-// Returns an error if the server fails to start or encounters issues
-func StartServer(ctx context.Context, router *chi.Mux, port, SSLKeyPath, SSLCertPath string) error {
-	// Determine the environment based on SSL file presence
-	env := determineEnvironment(SSLKeyPath, SSLCertPath)
+// StartServer starts an HTTP or HTTPS server with graceful shutdown support
+func StartServer(ctx context.Context, router *chi.Mux, port, sslKeyPath, sslCertPath string) error {
+	env := determineEnvironment(sslKeyPath, sslCertPath)
 
-	// Configure the HTTP server with timeouts, header limits, and logging
 	server := &http.Server{
-		Handler:        router,                       // Use the provided Chi router
-		Addr:           ":" + port,                   // Set server address with port
-		ReadTimeout:    30 * time.Second,             // Set read timeout
-		WriteTimeout:   30 * time.Second,             // Set write timeout
-		IdleTimeout:    10 * time.Second,             // Set idle timeout
-		MaxHeaderBytes: 1 << 20,                      // Set maximum header size (1MB)
-		ErrorLog:       log.New(os.Stderr, "[ERROR] ", log.LstdFlags), // Configure error logging
+		Handler:        router,
+		Addr:           ":" + port,
+		ReadTimeout:    30 * time.Second,
+		WriteTimeout:   30 * time.Second,
+		IdleTimeout:    10 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1MB
+		ErrorLog:       log.New(os.Stderr, "[ERROR] ", log.LstdFlags),
 	}
 
-	// Create a channel to capture server errors
 	serverErrors := make(chan error, 1)
 
-	// Start the server in a goroutine to allow concurrent error handling
 	go func() {
-		// Log server startup details
 		log.Printf("[INFO] %s server is running on port %s", env, port)
 
 		var err error
 		if env == "Development" {
-			// Start an HTTP server for development
 			err = server.ListenAndServe()
 		} else {
-			// Configure TLS for production
-			tlsConfig := &tls.Config{}
-			// Load SSL certificate and key
-			cert, err := tls.LoadX509KeyPair(SSLCertPath, SSLKeyPath)
-			if err != nil {
-				serverErrors <- err
+			tlsConfig := &tls.Config{
+				MinVersion:               tls.VersionTLS12,
+				PreferServerCipherSuites: true,
+				CurvePreferences: []tls.CurveID{
+					tls.X25519,
+					tls.CurveP256,
+					tls.CurveP384,
+				},
+				NextProtos: []string{"h2", "http/1.1"}, // Enable HTTP/2 and HTTP/1.1 ALPN
+			}
+
+			// Load SSL cert & key (correct order: cert then key)
+			cert, loadErr := tls.LoadX509KeyPair(sslCertPath, sslKeyPath)
+			if loadErr != nil {
+				serverErrors <- loadErr
 				return
 			}
 			tlsConfig.Certificates = []tls.Certificate{cert}
 
-			// Create a TLS listener for the server
-			listener, err := tls.Listen("tcp", server.Addr, tlsConfig)
-			if err != nil {
-				serverErrors <- err
+			listener, listenErr := tls.Listen("tcp", server.Addr, tlsConfig)
+			if listenErr != nil {
+				serverErrors <- listenErr
 				return
 			}
-			// Start the HTTPS server
+
 			err = server.Serve(listener)
-			if err != nil {
-				serverErrors <- err
-				return
-			}
 		}
 
-		// Send non-closing errors to the error channel
+		// Report errors except on intentional shutdown
 		if err != nil && err != http.ErrServerClosed {
 			serverErrors <- err
 		}
 	}()
 
-	// Handle context cancellation or server errors
 	select {
 	case <-ctx.Done():
-		// Initiate graceful shutdown on context cancellation
+		log.Println("[INFO] Shutting down server gracefully...")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-
-		// Log shutdown initiation
-		log.Println("[INFO] Shutting down server...")
-		// Perform graceful shutdown and return any error
 		return server.Shutdown(shutdownCtx)
 
 	case err := <-serverErrors:
-		// Return any error from server startup or runtime
 		return err
 	}
 }

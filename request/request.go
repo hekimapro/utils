@@ -73,7 +73,7 @@ func Post(url string, body any, headers *Headers) (json.RawMessage, error) {
 
 	// Marshal the body to JSON if provided
 	if body != nil {
-		jsonBody, err := json.Marshal(body)
+		jsonBody, err := json.Marshal(body)			
 		if err != nil {
 			// Log and return error if JSON marshaling fails
 			log.Printf("Error marshalling POST body: %v", err)
