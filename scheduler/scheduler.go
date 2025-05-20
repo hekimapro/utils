@@ -16,7 +16,7 @@ func RunFunctionAtInterval(functionToRun func(), interval time.Duration, runInst
 	if runInstant {
 		log.Info("Executing function immediately before first interval...")
 		functionToRun()
-		log.Info("Initial execution completed. Waiting for interval...")
+		log.Success("Initial execution completed. Waiting for next interval...")
 	}
 
 	for {
@@ -24,8 +24,8 @@ func RunFunctionAtInterval(functionToRun func(), interval time.Duration, runInst
 		log.Info(fmt.Sprintf("Waiting for the next interval of %v...", interval))
 		time.Sleep(interval)
 
-		log.Info("Executing function...")
+		log.Warning("Executing function...")
 		functionToRun()
-		log.Info("Function execution completed.")
+		log.Success("Function execution completed.")
 	}
 }

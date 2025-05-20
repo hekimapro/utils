@@ -40,7 +40,7 @@ func StartServer(ctx context.Context, router *chi.Mux, port, sslKeyPath, sslCert
 	serverErrors := make(chan error, 1)
 
 	go func() {
-		log.Info(fmt.Sprintf("%s server is running on port %s", env, port))
+		log.Success(fmt.Sprintf("%s server is running on port %s", env, port))
 
 		var err error
 		if env == "Development" {
