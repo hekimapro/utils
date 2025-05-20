@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"image"
 	"io"
-	"log"
 	"strings"
 
 	_ "image/gif"  // Register the GIF format
@@ -12,54 +11,49 @@ import (
 	_ "image/png"  // Register the PNG format
 
 	"github.com/chai2010/webp"
+	"github.com/hekimapro/utils/log"
 )
 
-// ConvertToWebP converts an image file to WebP format
-// Decodes the input image and encodes it as lossless WebP
+// convertToWebP converts an image file to WebP format
 func convertToWebP(file io.Reader) (io.Reader, error) {
-	// Decode the input image to an image.Image
+	log.Info("Decoding input image")
+
 	img, _, err := image.Decode(file)
 	if err != nil {
-		// Log and return error if image decoding fails
-		log.Printf("Error decoding image: %v", err)
+		log.Error("Failed to decode image: " + err.Error())
 		return nil, err
 	}
 
-	// Initialize a buffer to store the WebP-encoded image
 	var webpBuffer bytes.Buffer
 
-	// Encode the image to WebP format with lossless compression
+	log.Info("Encoding image to WebP format")
 	err = webp.Encode(&webpBuffer, img, &webp.Options{Lossless: true})
 	if err != nil {
-		// Log and return error if WebP encoding fails
-		log.Printf("Error encoding image to WebP: %v", err)
+		log.Error("Failed to encode image to WebP: " + err.Error())
 		return nil, err
 	}
 
-	// Return the WebP image as an io.Reader
+	log.Success("Image successfully converted to WebP")
 	return &webpBuffer, nil
 }
 
 // CheckAndConvertFile checks if a file is an image and converts it to WebP
-// Supports JPG, JPEG, and PNG formats; returns original file for unsupported types
 func CheckAndConvertFile(file io.Reader, fileName string) (io.Reader, error) {
-	// Extract the file extension and convert to lowercase
+	log.Info("Checking file type for conversion")
+
 	ext := strings.ToLower(fileName[strings.LastIndex(fileName, ".")+1:])
-	// Check if the file is a supported image format
 	if ext != "jpg" && ext != "jpeg" && ext != "png" {
-		// Log and return the original file for unsupported formats
-		log.Println("File format not supported, returning original file.")
+		log.Info("Unsupported image format: " + ext + ". Skipping conversion.")
 		return file, nil
 	}
 
-	// Convert the supported image to WebP format
+	log.Info("Image format supported (" + ext + "). Converting to WebP")
 	convertedFile, err := convertToWebP(file)
 	if err != nil {
-		// Log and return error if conversion fails
-		log.Printf("Error converting file: %v", err)
+		log.Error("Image conversion to WebP failed: " + err.Error())
 		return nil, err
 	}
 
-	// Return the converted WebP file
+	log.Success("File successfully converted to WebP format")
 	return convertedFile, nil
 }

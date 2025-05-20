@@ -42,11 +42,11 @@ type SMSPayload struct {
 // EmailDetails defines the structure for email sending parameters
 // Holds the sender, recipients, subject, body, and attachments for an email
 type EmailDetails struct {
-	From       string   // Sender email address
-	To         []string // Recipient email addresses
-	Subject    string   // Email subject
-	Text       string   // Plain text message body
-	HTML       string   // HTML message body
+	From        string   // Sender email address
+	To          []string // Recipient email addresses
+	Subject     string   // Email subject
+	Text        string   // Plain text message body
+	HTML        string   // HTML message body
 	Attachments []string // File paths for email attachments
 }
 

@@ -4,12 +4,13 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"log"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/hekimapro/utils/log"
 )
 
 // determineEnvironment returns "Production" if both SSL cert and key files exist, otherwise "Development"
@@ -34,13 +35,12 @@ func StartServer(ctx context.Context, router *chi.Mux, port, sslKeyPath, sslCert
 		WriteTimeout:   30 * time.Second,
 		IdleTimeout:    10 * time.Second,
 		MaxHeaderBytes: 1 << 20, // 1MB
-		ErrorLog:       log.New(os.Stderr, "[ERROR] ", log.LstdFlags),
 	}
 
 	serverErrors := make(chan error, 1)
 
 	go func() {
-		log.Printf("[INFO] %s server is running on port %s", env, port)
+		log.Info(fmt.Sprintf("%s server is running on port %s", env, port))
 
 		var err error
 		if env == "Development" {
@@ -74,7 +74,6 @@ func StartServer(ctx context.Context, router *chi.Mux, port, sslKeyPath, sslCert
 			err = server.Serve(listener)
 		}
 
-		// Report errors except on intentional shutdown
 		if err != nil && err != http.ErrServerClosed {
 			serverErrors <- err
 		}
@@ -82,7 +81,7 @@ func StartServer(ctx context.Context, router *chi.Mux, port, sslKeyPath, sslCert
 
 	select {
 	case <-ctx.Done():
-		log.Println("[INFO] Shutting down server gracefully...")
+		log.Info("Shutting down server gracefully...")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		return server.Shutdown(shutdownCtx)

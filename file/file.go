@@ -9,147 +9,132 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/hekimapro/utils/log"
 )
 
 // toKebabCase converts a string to kebab-case (lowercase with hyphens)
-// Replaces non-alphanumeric characters with hyphens, adds hyphens between case transitions, and trims edges
 func toKebabCase(stringValue string) string {
-	// Replace all non-alphanumeric characters with hyphens
 	re := regexp.MustCompile(`[^a-zA-Z0-9]+`)
 	kebab := re.ReplaceAllString(stringValue, "-")
 
-	// Add hyphen between lowercase-to-uppercase transitions
 	re2 := regexp.MustCompile(`([a-z0-9])([A-Z])`)
 	kebab = re2.ReplaceAllString(kebab, "${1}-${2}")
 
-	// Convert to lowercase and trim hyphens
 	return strings.Trim(strings.ToLower(kebab), "-")
 }
 
 // UploadFile uploads a single file to the specified directory
-// Optionally converts images to WebP, updates extension if converted, generates a unique kebab-case filename with a UUID, and copies the file content
-// Returns the unique filename or an error if the upload fails
 func UploadFile(file io.Reader, fileName, uploadDirectory string, convertToWebP bool) (string, error) {
-	// Ensure the upload directory exists with proper permissions
+	log.Info("Creating upload directory if not exists: " + uploadDirectory)
 	err := os.MkdirAll(uploadDirectory, os.ModePerm)
 	if err != nil {
+		log.Error("Failed to create upload directory: " + err.Error())
 		return "", fmt.Errorf("failed to create upload directory: %w", err)
 	}
 
-	// Convert the file to WebP if requested and supported
 	if convertToWebP {
+		log.Info("Converting file to WebP: " + fileName)
 		file, err = CheckAndConvertFile(file, fileName)
 		if err != nil {
+			log.Error("Conversion to WebP failed: " + err.Error())
 			return "", err
 		}
 	}
 
-	// Extract file extension and base name from the provided filename
 	ext := filepath.Ext(fileName)
-	// Update extension to .webp for supported image formats if converted
 	if convertToWebP {
 		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
 			ext = ".webp"
 		}
 	}
 	base := strings.TrimSuffix(filepath.Base(fileName), ext)
-
-	// Convert base name to kebab-case for consistency
 	baseKebab := toKebabCase(base)
 
-	// Generate a unique filename using kebab-case base, UUID, and extension
 	uniqueFilename := fmt.Sprintf("%s-%s%s", baseKebab, uuid.New().String(), ext)
 	destinationPath := filepath.Join(uploadDirectory, uniqueFilename)
 
-	// Create the destination file in the upload directory
+	log.Info("Creating destination file: " + destinationPath)
 	destination, err := os.Create(destinationPath)
 	if err != nil {
+		log.Error("Failed to create destination file: " + err.Error())
 		return "", fmt.Errorf("failed to create destination file: %w", err)
 	}
 	defer destination.Close()
 
-	// Copy the file content from the reader to the destination file
+	log.Info("Copying file content to destination")
 	_, err = io.Copy(destination, file)
 	if err != nil {
+		log.Error("Failed to copy file content: " + err.Error())
 		return "", fmt.Errorf("failed to copy file content to destination: %w", err)
 	}
 
-	// Return the unique filename for reference
+	log.Success("File uploaded successfully: " + uniqueFilename)
 	return uniqueFilename, nil
 }
 
 // DeleteFile removes a single file from the specified directory
-// Takes the filename and directory path, deletes the file, and handles errors
-// Returns an error if the file does not exist or deletion fails
 func DeleteFile(filename, uploadDirectory string) error {
-	// Construct the full file path
 	filePath := filepath.Join(uploadDirectory, filename)
 
-	// Attempt to remove the file
+	log.Info("Deleting file: " + filePath)
 	err := os.Remove(filePath)
 	if err != nil {
-		// Log the error to stdout
-		fmt.Println(err.Error())
+		log.Error("Failed to delete file: " + err.Error())
 		if os.IsNotExist(err) {
 			return fmt.Errorf("file not found: %w", err)
 		}
 		return fmt.Errorf("failed to delete file: %w", err)
 	}
 
-	// Return nil on successful deletion
+	log.Success("File deleted successfully: " + filename)
 	return nil
 }
 
-// UploadMultipleFiles handles the uploading of multiple files to the specified directory
-// Optionally converts images to WebP, uploads each file, and ensures consistency
-// Returns a slice of unique filenames or an error, rolling back on failure
+// UploadMultipleFiles uploads multiple files and rolls back if any fail
 func UploadMultipleFiles(files []io.Reader, fileNames []string, uploadDirectory string, convertToWebP bool) ([]string, error) {
-	// Validate that the number of files matches the number of filenames
 	if len(files) != len(fileNames) {
-		return nil, fmt.Errorf("mismatch between number of files and filenames")
+		errMsg := "Mismatch between number of files and filenames"
+		log.Error(errMsg)
+		return nil, fmt.Errorf(errMsg)
 	}
 
-	// Initialize slice to store uploaded filenames
 	uploadedFiles := make([]string, 0, len(files))
-
-	// Iterate through files and upload each one
 	for i, file := range files {
 		uniqueFilename, err := UploadFile(file, fileNames[i], uploadDirectory, convertToWebP)
 		if err != nil {
-			// Rollback: Delete already uploaded files to maintain consistency
+			log.Error("Failed to upload file: " + fileNames[i] + " - rolling back")
 			for _, filename := range uploadedFiles {
-				_ = DeleteFile(filename, uploadDirectory)
+				if delErr := DeleteFile(filename, uploadDirectory); delErr != nil {
+					log.Error("Rollback deletion failed for file: " + filename + " - " + delErr.Error())
+				}
 			}
 			return nil, fmt.Errorf("failed to upload file %s: %w", fileNames[i], err)
 		}
 		uploadedFiles = append(uploadedFiles, uniqueFilename)
 	}
 
-	// Return the list of successfully uploaded filenames
+	log.Success("All files uploaded successfully")
 	return uploadedFiles, nil
 }
 
-// DeleteMultipleFiles removes multiple files from the specified directory
-// Takes a slice of filenames and the directory path, attempts to delete each file
-// Continues deletion even if some fail, returns an error with failed filenames
+// DeleteMultipleFiles deletes multiple files and returns error if any deletions fail
 func DeleteMultipleFiles(filenames []string, uploadDirectory string) error {
-	// Initialize slice to track failed deletions
 	var failedDeletes []string
 
-	// Iterate through filenames and attempt to delete each file
 	for _, filename := range filenames {
-		if err := DeleteFile(filename, uploadDirectory); err != nil {
-			// Log the failure and track the failed filename
-			fmt.Printf("Failed to delete file %s: %s\n", filename, err.Error())
+		err := DeleteFile(filename, uploadDirectory)
+		if err != nil {
+			log.Error(fmt.Sprintf("Failed to delete file %s: %s", filename, err.Error()))
 			failedDeletes = append(failedDeletes, filename)
 		}
 	}
 
-	// Return an error if any deletions failed, listing the failed filenames
 	if len(failedDeletes) > 0 {
-		return fmt.Errorf("failed to delete files: %v", failedDeletes)
+		errMsg := fmt.Sprintf("Failed to delete files: %v", failedDeletes)
+		log.Error(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
-	// Return nil on successful deletion
+	log.Success("All files deleted successfully")
 	return nil
 }

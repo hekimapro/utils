@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/hekimapro/utils/log"
 	"github.com/hekimapro/utils/models"
 )
 
@@ -48,64 +49,57 @@ func GetStatusMessage(code int) string {
 // Marshals the SMS payload, sends a POST request, and parses the response
 // Returns the SMS response or an error if the request fails
 func SendSMS(payload models.SMSPayload) (models.SMSResponse, error) {
-	// Initialize an empty SMS response struct to store the API response
 	var smsResponse models.SMSResponse
 
-	// Marshal the SMS payload into JSON format for the request body
+	log.Info("Marshalling SMS payload to JSON")
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		// Log the error and return a wrapped error for context
-		fmt.Println(err.Error())
+		log.Error(fmt.Sprintf("Failed to marshal payload: %v", err))
 		return smsResponse, fmt.Errorf("failed to marshal payload into JSON: %w", err)
 	}
 
-	// Create a new HTTP POST request with the JSON payload
+	log.Info("Creating HTTP request")
 	req, err := http.NewRequest("POST", baseURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		// Log the error and return a wrapped error for context
-		fmt.Println(err.Error())
+		log.Error(fmt.Sprintf("Failed to create HTTP request: %v", err))
 		return smsResponse, fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 
-	// Set required headers for the Africa's Talking API request
+	// Set required headers
 	req.Header.Set("apiKey", payload.ATAPIKey)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+	log.Info("Headers set for HTTP request")
 
-	// Initialize an HTTP client to send the request
 	client := &http.Client{}
-	// Execute the HTTP request and capture the response
+	log.Info("Sending SMS request to Africa's Talking API...")
 	resp, err := client.Do(req)
 	if err != nil {
-		// Log the error and return a wrapped error for context
-		fmt.Println(err.Error())
+		log.Error(fmt.Sprintf("Failed to send request: %v", err))
 		return smsResponse, fmt.Errorf("failed to execute POST request: %w", err)
 	}
-	// Ensure the response body is closed after processing
 	defer resp.Body.Close()
 
-	// Verify the response status code is in the successful range (2xx)
+	// Check for non-2xx responses
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		// Return an error with the HTTP status for non-successful responses
+		log.Warning(fmt.Sprintf("Received non-2xx response: %s", resp.Status))
 		return smsResponse, fmt.Errorf("received non-2xx status code: %s", resp.Status)
 	}
 
-	// Read the response body into a byte slice
+	log.Info("Reading response body")
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		// Log the error and return a wrapped error for context
-		fmt.Println(err.Error())
+		log.Error(fmt.Sprintf("Failed to read response body: %v", err))
 		return smsResponse, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	// Unmarshal the response body into the SMS response struct
+	log.Info("Unmarshalling response into SMSResponse struct")
 	err = json.Unmarshal(body, &smsResponse)
 	if err != nil {
-		// Log the error and return a wrapped error for context
-		fmt.Println(err.Error())
+		log.Error(fmt.Sprintf("Failed to unmarshal response: %v", err))
 		return smsResponse, fmt.Errorf("failed to parse response body into SMSResponse: %w", err)
 	}
 
-	// Return the parsed SMS response on success
+	log.Success("SMS sent and response parsed successfully")
 	return smsResponse, nil
 }
