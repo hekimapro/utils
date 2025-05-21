@@ -14,7 +14,7 @@ const (
 )
 
 func formattedTime() string {
-	return time.Now().Format("Mon Jan 2006 15:04")
+	return time.Now().Format("Mon Jan 2006 15:04:05.000")
 }
 
 func Info(message string) {

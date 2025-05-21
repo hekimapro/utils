@@ -93,7 +93,7 @@ func DeleteFile(filename, uploadDirectory string) error {
 // UploadMultipleFiles uploads multiple files and rolls back if any fail
 func UploadMultipleFiles(files []io.Reader, fileNames []string, uploadDirectory string, convertToWebP bool) ([]string, error) {
 	if len(files) != len(fileNames) {
-		errMsg := "Mismatch between number of files and filenames"
+		errMsg := "mismatch between number of files and filenames"
 		log.Error(errMsg)
 		return nil, fmt.Errorf(errMsg)
 	}
@@ -130,7 +130,7 @@ func DeleteMultipleFiles(filenames []string, uploadDirectory string) error {
 	}
 
 	if len(failedDeletes) > 0 {
-		errMsg := fmt.Sprintf("Failed to delete files: %v", failedDeletes)
+		errMsg := fmt.Sprintf("failed to delete files: %v", failedDeletes)
 		log.Error(errMsg)
 		return fmt.Errorf(errMsg)
 	}
