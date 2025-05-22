@@ -13,9 +13,9 @@ import (
 // TransactionFunction defines the signature for the transactional operation.
 type TransactionFunction func(transaction *sql.Tx) error
 
-// WithTransaction executes a database transaction with retry logic for PostgreSQL,
+// Transaction executes a database transaction with retry logic for PostgreSQL,
 // improved panic handling, simplified timestamps, and detailed logging.
-func WithTransaction(database *sql.DB, operation TransactionFunction) (err error) {
+func Transaction(database *sql.DB, operation TransactionFunction) (err error) {
 	// Constants for retry logic and timestamp format
 	const (
 		maxRetries      = 3                         // Maximum number of retry attempts for transient errors
