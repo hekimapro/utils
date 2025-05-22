@@ -18,8 +18,8 @@ type TransactionFunction func(transaction *sql.Tx) error
 func Transaction(database *sql.DB, operation TransactionFunction) (err error) {
 	// Constants for retry logic and timestamp format
 	const (
-		maxRetries      = 3                         // Maximum number of retry attempts for transient errors
-		baseDelay       = 100                       // Base delay in milliseconds for exponential backoff
+		maxRetries      = 5                         // Maximum number of retry attempts for transient errors
+		baseDelay       = 500                       // Base delay in milliseconds for exponential backoff
 		timestampFormat = "2006-01-02 15:04:05.000" // ISO 8601-like format for consistent timestamps
 	)
 
