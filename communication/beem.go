@@ -56,7 +56,7 @@ func GetDeliveryStatus(payload *models.BeemSMSDeliveryStatusPayload) (*models.Be
 		"Authorization": createAuthHeader(payload.APIKey, payload.SecretKey),
 	}
 
-	URL := fmt.Sprintf("%s?dest_addr=%s&request_id=%s", beemDeliveryResportURL, payload.PhoneNumber, payload.RequestID)
+	URL := fmt.Sprintf("%s?dest_addr=%s&request_id=%d", beemDeliveryResportURL, payload.PhoneNumber, payload.RequestID)
 
 	rawData, err := request.Get(URL, headers)
 	if err != nil {

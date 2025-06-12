@@ -96,7 +96,7 @@ type BeemSMSDeliveryStatusResponse struct {
 
 type BeemSMSDeliveryStatusPayload struct {
 	PhoneNumber string
-	RequestID   string
+	RequestID   int
 	APIKey      string
 	SecretKey   string
 }
