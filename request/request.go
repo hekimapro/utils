@@ -1,31 +1,34 @@
 package request
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
-	"io"
-	"net/http"
+	"bytes"         // bytes provides utilities for creating byte buffers.
+	"encoding/json" // json provides JSON encoding and decoding functions.
+	"errors"        // errors provides utilities for creating errors.
+	"io"            // io provides interfaces for I/O operations.
+	"net/http"      // http provides utilities for HTTP requests and responses.
 
-	"github.com/hekimapro/utils/log"
+	"github.com/hekimapro/utils/log" // log provides colored logging utilities.
 )
 
-// Headers type alias for map[string]string
+// Headers type alias for map[string]string to store HTTP headers.
 type Headers map[string]string
 
-// defaultHeaders returns a map of default HTTP headers
-// Includes Accept and Content-Type set to application/json
+// defaultHeaders returns a map of default HTTP headers.
+// Includes Accept and Content-Type set to application/json.
 func defaultHeaders() Headers {
+	// Initialize default headers for JSON communication.
 	return Headers{
-		"Accept":       "application/json",
-		"Content-Type": "application/json",
+		"Accept":       "application/json", // Expect JSON responses.
+		"Content-Type": "application/json", // Send JSON request bodies.
 	}
 }
 
-// mergeHeaders combines default headers with user-provided headers
-// User headers override default headers if they conflict
+// mergeHeaders combines default headers with user-provided headers.
+// User headers override default headers if they conflict.
 func mergeHeaders(userHeaders *Headers) Headers {
+	// Start with default headers.
 	headers := defaultHeaders()
+	// Add or override with user-provided headers if provided.
 	if userHeaders != nil {
 		for headerKey, headerValue := range *userHeaders {
 			headers[headerKey] = headerValue
@@ -34,83 +37,113 @@ func mergeHeaders(userHeaders *Headers) Headers {
 	return headers
 }
 
-// Get sends an HTTP GET request to the specified URL
-// Applies headers and returns the response body as json.RawMessage
+// Get sends an HTTP GET request to the specified URL.
+// Applies headers and returns the response body as json.RawMessage.
+// Returns an error if the request or response processing fails.
 func Get(url string, headers *Headers) (json.RawMessage, error) {
+	// Log the start of the GET request.
+	log.Info("🔍 Preparing GET request to " + url)
+	// Create a new HTTP GET request.
 	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		log.Error("Error creating GET request: " + err.Error())
+		// Log and return an error if request creation fails.
+		log.Error("❌ Failed to create GET request: " + err.Error())
 		return nil, err
 	}
 
+	// Apply merged headers to the request.
 	for headerKey, headerValue := range mergeHeaders(headers) {
 		request.Header.Set(headerKey, headerValue)
 	}
 
+	// Execute the HTTP request.
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		log.Error("Error sending GET request: " + err.Error())
+		// Log and return an error if the request fails.
+		log.Error("❌ GET request failed: " + err.Error())
 		return nil, err
 	}
 	defer response.Body.Close()
 
+	// Process the response and return the result.
 	return handleResponse(response)
 }
 
-// Post sends an HTTP POST request with a JSON body to the specified URL
-// Applies headers and returns the response body as json.RawMessage
+// Post sends an HTTP POST request with a JSON body to the specified URL.
+// Applies headers and returns the response body as json.RawMessage.
+// Returns an error if the request or response processing fails.
 func Post(url string, body any, headers *Headers) (json.RawMessage, error) {
-	var requestBody io.Reader
+	// Log the start of the POST request.
+	log.Info("📤 Preparing POST request to " + url)
 
+	// Prepare the request body if provided.
+	var requestBody io.Reader
 	if body != nil {
+		// Marshal the body to JSON.
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
-			log.Error("Error marshalling POST body: " + err.Error())
+			// Log and return an error if marshaling fails.
+			log.Error("❌ Failed to marshal POST body: " + err.Error())
 			return nil, err
 		}
+		// Create a buffer for the JSON body.
 		requestBody = bytes.NewBuffer(jsonBody)
 	}
 
+	// Create a new HTTP POST request.
 	request, err := http.NewRequest(http.MethodPost, url, requestBody)
 	if err != nil {
-		log.Error("Error creating POST request: " + err.Error())
+		// Log and return an error if request creation fails.
+		log.Error("❌ Failed to create POST request: " + err.Error())
 		return nil, err
 	}
 
+	// Apply merged headers to the request.
 	for headerKey, headerValue := range mergeHeaders(headers) {
 		request.Header.Set(headerKey, headerValue)
 	}
 
+	// Execute the HTTP request.
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		log.Error("Error sending POST request: " + err.Error())
+		// Log and return an error if the request fails.
+		log.Error("❌ POST request failed: " + err.Error())
 		return nil, err
 	}
 	defer response.Body.Close()
 
+	// Process the response and return the result.
 	return handleResponse(response)
 }
 
-// handleResponse processes an HTTP response
-// Reads the body, checks the status code, and returns json.RawMessage or error
+// handleResponse processes an HTTP response.
+// Reads the body, checks the status code, and returns json.RawMessage or an error.
 func handleResponse(response *http.Response) (json.RawMessage, error) {
+	// Read the response body.
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		log.Error("Error reading response body: " + err.Error())
+		// Log and return an error if reading the body fails.
+		log.Error("❌ Failed to read response body: " + err.Error())
 		return nil, err
 	}
 
+	// Check if the status code indicates an error (not 2xx).
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		errMessage := string(body)
-		log.Error("Error in response status: " + http.StatusText(response.StatusCode) + " - " + errMessage)
+		// Log and return the error message from the response body.
+		log.Error("❌ HTTP error: " + http.StatusText(response.StatusCode) + " - " + errMessage)
 		return nil, errors.New(errMessage)
 	}
 
+	// Unmarshal the body into a json.RawMessage.
 	var raw json.RawMessage
 	if err := json.Unmarshal(body, &raw); err != nil {
-		log.Error("Error unmarshalling response body: " + err.Error())
+		// Log and return an error if JSON unmarshaling fails.
+		log.Error("❌ Failed to unmarshal response JSON: " + err.Error())
 		return nil, err
 	}
 
+	// Log successful response processing.
+	log.Info("✅ HTTP response processed successfully")
 	return raw, nil
 }

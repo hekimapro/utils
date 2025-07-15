@@ -1,83 +1,99 @@
 package database
 
 import (
-	"database/sql"
-	"fmt"
-	"time"
+	"database/sql" // sql provides database connectivity and transaction management.
+	"fmt"          // fmt provides formatting and printing functions.
+	"time"         // time provides functionality for tracking transaction duration.
 
-	"github.com/hekimapro/utils/log"
+	"github.com/hekimapro/utils/log" // log provides colored logging utilities.
 )
 
 // TransactionFunction defines the signature for the transactional operation.
+// It accepts a transaction and returns an error if the operation fails.
 type TransactionFunction func(transaction *sql.Tx) error
 
 // Transaction executes a database transaction with robust panic handling,
 // consistent timestamps, and enhanced logging for debugging.
+// It returns an error if the transaction fails or panics.
 func Transaction(database *sql.DB, operation TransactionFunction) (err error) {
-	// Constants for timestamp format
-	const (
-		timestampFormat = "2006-01-02 15:04:05.000" // ISO 8601-like format for consistent timestamps
-	)
+	const timestampFormat = "2006-01-02 15:04:05.000" // ISO 8601-like format for timestamps.
 
-	// Record start time for transaction duration
+	// Record the start time of the transaction.
 	startTime := time.Now()
-	log.Info(fmt.Sprintf("[DB] Starting transaction at %s", startTime.Format(timestampFormat)))
+	// Log the start of the transaction with timestamp.
+	log.Info(fmt.Sprintf("🔄 Beginning DB transaction at %s", startTime.Format(timestampFormat)))
+	// Log that the transactional operation is being executed.
+	log.Info("🛠️  Executing transactional operation...")
 
-	// Begin a new transaction
+	// Begin the database transaction.
 	transaction, err := database.Begin()
 	if err != nil {
-		log.Error(fmt.Sprintf("[DB] Failed to start transaction: %s", err.Error()))
+		// Log and return an error if starting the transaction fails.
+		log.Error(fmt.Sprintf("❌ Failed to begin transaction: %s", err.Error()))
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
 
-	// Deferred block for cleanup, logging, and error/panic handling
+	// Defer transaction cleanup (commit or rollback) and panic/error handling.
 	defer func() {
-		// Log transaction duration and end time
+		// Record the end time and calculate transaction duration.
 		endTime := time.Now()
 		duration := endTime.Sub(startTime)
-		log.Info(fmt.Sprintf("[DB] Transaction ended at %s (duration: %s)", endTime.Format(timestampFormat), duration))
+		// Log transaction completion with timestamp and duration.
+		log.Info(fmt.Sprintf("🕒 Transaction ended at %s (duration: %s)", endTime.Format(timestampFormat), duration))
 
-		// Handle panics to prevent crashes
-		if recoveredPanic := recover(); recoveredPanic != nil {
-			log.Error(fmt.Sprintf("[DB] Panic in transaction: %v", recoveredPanic))
+		// Handle any panic that occurred during the transaction.
+		if recovered := recover(); recovered != nil {
+			// Log the panic details.
+			log.Error(fmt.Sprintf("💥 Panic during transaction: %v", recovered))
+			// Attempt to rollback the transaction.
 			if rollbackErr := transaction.Rollback(); rollbackErr != nil {
-				log.Error(fmt.Sprintf("[DB] Rollback failed after panic: %s", rollbackErr.Error()))
+				// Log if rollback fails after panic.
+				log.Error(fmt.Sprintf("❌ Rollback failed after panic: %s", rollbackErr.Error()))
 			} else {
-				log.Info("[DB] Rolled back transaction due to panic")
+				// Log successful rollback due to panic.
+				log.Warning("⚠️  Transaction rolled back due to panic")
 			}
-			err = fmt.Errorf("transaction panicked: %v", recoveredPanic)
+			// Set the error to indicate a panic occurred.
+			err = fmt.Errorf("transaction panicked: %v", recovered)
 			return
 		}
 
-		// Handle errors from operation or commit
+		// Handle any error from the transaction operation.
 		if err != nil {
-			log.Error(fmt.Sprintf("[DB] Transaction failed: %s", err.Error()))
+			// Log the operation error.
+			log.Error(fmt.Sprintf("❌ Transaction operation error: %s", err.Error()))
+			// Attempt to rollback the transaction.
 			if rollbackErr := transaction.Rollback(); rollbackErr != nil {
-				log.Error(fmt.Sprintf("[DB] Rollback failed: %s", rollbackErr.Error()))
+				// Log if rollback fails and combine errors.
+				log.Error(fmt.Sprintf("❌ Rollback failed: %s", rollbackErr.Error()))
 				err = fmt.Errorf("rollback failed: %w; original error: %v", rollbackErr, err)
 			} else {
-				log.Info("[DB] Rolled back transaction due to error")
+				// Log successful rollback due to error.
+				log.Warning("⚠️  Transaction rolled back due to error")
 			}
 			return
 		}
 
-		// Attempt to commit the transaction
-		log.Info("[DB] Committing transaction")
+		// Attempt to commit the transaction if no errors occurred.
+		log.Info("📝 Committing transaction...")
 		if commitErr := transaction.Commit(); commitErr != nil {
-			log.Error(fmt.Sprintf("[DB] Commit failed: %s", commitErr.Error()))
+			// Log and set error if commit fails.
+			log.Error(fmt.Sprintf("❌ Commit failed: %s", commitErr.Error()))
 			err = fmt.Errorf("failed to commit transaction: %w", commitErr)
 		} else {
-			log.Info("[DB] Transaction committed successfully")
+			// Log successful transaction commit.
+			log.Success("✅ Transaction committed successfully")
 		}
 	}()
 
-	// Execute the transactional operation
-	log.Info("[DB] Executing operation")
+	// Execute the provided transactional operation.
 	err = operation(transaction)
 	if err != nil {
-		log.Error(fmt.Sprintf("[DB] Operation failed: %s", err.Error()))
+		// Log if the operation fails.
+		log.Error(fmt.Sprintf("⚠️  Transaction operation failed: %s", err.Error()))
 	} else {
-		log.Info("[DB] Operation completed successfully")
+		// Log successful operation execution.
+		log.Info("✔️  Transaction operation completed successfully")
 	}
 
 	return err

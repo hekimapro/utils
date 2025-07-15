@@ -1,25 +1,36 @@
 package communication
 
 import (
-	"crypto/rand"
-	"fmt"
-	"math/big"
+	"crypto/rand" // rand provides cryptographically secure random number generation.
+	"fmt"         // fmt provides formatting and printing functions.
+	"math/big"    // big provides support for large integer arithmetic.
 
-	"github.com/hekimapro/utils/log"
+	"github.com/hekimapro/utils/log" // log provides colored logging utilities.
 )
 
+// GenerateOTP generates a secure 6-digit One-Time Password (OTP).
+// Returns the OTP and an error (if any occurs during generation).
 func GenerateOTP() (int, error) {
-	min := int64(100000) // Smallest 6-digit number
-	max := int64(999999) // Largest 6-digit number
+	const (
+		min = int64(100000) // Smallest 6-digit number for OTP range.
+		max = int64(999999) // Largest 6-digit number for OTP range.
+	)
 
-	// Generate a random number between 100000 and 999999
+	// Log the start of the OTP generation process.
+	log.Info("🔐 Generating a secure 6-digit OTP")
+
+	// Generate a cryptographically secure random number in the range [0, max-min].
 	n, err := rand.Int(rand.Reader, big.NewInt(max-min+1))
 	if err != nil {
-		log.Error(err.Error())
+		// Log and return an error if random number generation fails.
+		log.Error(fmt.Sprintf("❌ Failed to generate secure random number: %v", err))
 		return 0, fmt.Errorf("failed to generate OTP")
 	}
 
-	// Ensure it’s always 6 digits
+	// Shift the random number to the 6-digit range [100000, 999999].
 	otp := int(n.Int64() + min)
+
+	// Log successful OTP generation with the generated value.
+	log.Success(fmt.Sprintf("✅ OTP generated successfully: %d", otp))
 	return otp, nil
 }

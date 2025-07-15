@@ -1,34 +1,45 @@
 package encryption
 
 import (
-	"github.com/hekimapro/utils/log"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/hekimapro/utils/log" // log provides colored logging utilities.
+	"golang.org/x/crypto/bcrypt"    // bcrypt provides password hashing and verification functions.
 )
 
-// CreateHash generates a bcrypt hash from a plain text password
+// CreateHash generates a bcrypt hash from a plain text password.
+// Returns the hashed password as a string or an error if hashing fails.
 func CreateHash(Password string) (string, error) {
-	log.Info("Generating bcrypt hash")
+	// Log the start of the password hashing process.
+	log.Info("🔐 Generating bcrypt hash from password")
 
+	// Generate a bcrypt hash using the default cost factor.
 	HashedString, err := bcrypt.GenerateFromPassword([]byte(Password), bcrypt.DefaultCost)
 	if err != nil {
-		log.Error("Failed to generate hash: " + err.Error())
+		// Log and return an error if hashing fails.
+		log.Error("❌ Failed to generate hash: " + err.Error())
 		return "", err
 	}
 
-	log.Success("Password hash created successfully")
+	// Log successful hash generation.
+	log.Success("✅ Password hash created successfully")
+	// Convert the hash to a string and return it.
 	return string(HashedString), nil
 }
 
-// CompareWithHash verifies a plain text password against a bcrypt hash
+// CompareWithHash verifies a plain text password against a bcrypt hash.
+// Returns true if the password matches the hash, false otherwise.
 func CompareWithHash(HashedString string, Password string) bool {
-	log.Info("Comparing password with hash")
+	// Log the start of the password verification process.
+	log.Info("🔎 Verifying password against bcrypt hash")
 
+	// Compare the provided password with the stored hash.
 	err := bcrypt.CompareHashAndPassword([]byte(HashedString), []byte(Password))
 	if err != nil {
-		log.Error("Password comparison failed: " + err.Error())
+		// Log and return false if the password does not match.
+		log.Error("❌ Password does not match hash")
 		return false
 	}
 
-	log.Success("Password matches hash")
+	// Log successful password verification.
+	log.Success("✅ Password verification successful")
 	return true
 }
