@@ -101,3 +101,12 @@ type BeemSMSDeliveryStatusPayload struct {
 	APIKey      string
 	SecretKey   string
 }
+
+type DatabaseOptions struct {
+	Username     string
+	Password     string
+	Host         string
+	Port         string
+	SSLMode      string // e.g., "disable", "require", "verify-full"
+	DatabaseName string
+}

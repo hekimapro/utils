@@ -4,82 +4,105 @@ import (
 	"database/sql" // sql provides database connectivity and query execution.
 	"fmt"          // fmt provides formatting and printing functions.
 	"net/url"      // url provides utilities for parsing database URIs.
-	"strings"      // strings provides utilities for string manipulation.
-	"time"         // time provides functionality for handling connection timeouts.
+	"strings"
 
+	// strings provides utilities for string manipulation.
+	"time" // time provides functionality for handling connection timeouts.
+
+	"github.com/hekimapro/utils/env"
 	"github.com/hekimapro/utils/log" // log provides colored logging utilities.
-	_ "github.com/lib/pq"            // pq registers the PostgreSQL driver.
+	"github.com/hekimapro/utils/models"
+	_ "github.com/lib/pq" // pq registers the PostgreSQL driver.
 )
 
-// extractDatabaseName parses a database URI to extract the database name.
-// Returns the database name or an error if the URI is invalid or lacks a name.
-func extractDatabaseName(databaseURI string) (string, error) {
-	// Log the start of the URI parsing process.
-	log.Info("🔍 Parsing database URI to extract database name")
+func getURI(databaseOptions models.DatabaseOptions) string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		url.QueryEscape(databaseOptions.Username),
+		url.QueryEscape(databaseOptions.Password),
+		databaseOptions.Host,
+		databaseOptions.Port,
+		databaseOptions.DatabaseName,
+		url.QueryEscape(databaseOptions.SSLMode),
+	)
+}
 
-	// Parse the provided database URI.
-	parsedURI, err := url.Parse(databaseURI)
-	if err != nil {
-		// Log and return an error if the URI is invalid.
-		log.Error(fmt.Sprintf("❌ Invalid database URI: %v", err))
-		return "", fmt.Errorf("invalid database URI provided: %w", err)
+// validateDatabaseOptions checks for required fields in DatabaseOptions and returns an error if any are missing.
+func validateDatabaseOptions(opts models.DatabaseOptions) error {
+	var missing []string
+
+	if strings.TrimSpace(opts.Username) == "" {
+		missing = append(missing, "Username")
+	}
+	if strings.TrimSpace(opts.Password) == "" {
+		missing = append(missing, "Password")
+	}
+	if strings.TrimSpace(opts.Host) == "" {
+		missing = append(missing, "Host")
+	}
+	if strings.TrimSpace(opts.Port) == "" {
+		missing = append(missing, "Port")
+	}
+	if strings.TrimSpace(opts.DatabaseName) == "" {
+		missing = append(missing, "DatabaseName")
+	}
+	if strings.TrimSpace(opts.SSLMode) == "" {
+		missing = append(missing, "SSLMode")
 	}
 
-	// Split the URI path to extract the database name.
-	pathParts := strings.Split(parsedURI.Path, "/")
-	if len(pathParts) < 2 || pathParts[1] == "" {
-		// Log and return an error if no database name is found.
-		log.Error("❌ Database name not found in URI path")
-		return "", fmt.Errorf("database name not found in URI")
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required database option(s): %s", strings.Join(missing, ", "))
 	}
-
-	// Extract the database name from the path.
-	dbName := pathParts[1]
-	// Log successful extraction of the database name.
-	log.Success(fmt.Sprintf("📦 Database name extracted: %s", dbName))
-	return dbName, nil
+	return nil
 }
 
 // ConnectToDatabase establishes a connection to a PostgreSQL database.
 // Configures connection pooling and verifies connectivity.
 // Returns the database handle or an error if the connection fails.
-func ConnectToDatabase(databaseURI string) (*sql.DB, error) {
-	// Log the start of the database connection process.
+func ConnectToDatabase() (*sql.DB, error) {
+
+	databaseOptions := models.DatabaseOptions{
+		Host:         env.GetValue("database host"),
+		Port:         env.GetValue("database port"),
+		DatabaseName: env.GetValue("database name"),
+		Username:     env.GetValue("database username"),
+		Password:     env.GetValue("database password"),
+		SSLMode:      env.GetValue("database ssl mode"),
+	}
+
 	log.Info("🔌 Starting database connection process")
 
-	// Extract the database name from the URI.
-	databaseName, err := extractDatabaseName(databaseURI)
-	if err != nil {
-		// Log and return an error if extraction fails.
-		log.Error(fmt.Sprintf("❌ Failed to extract database name: %v", err))
+	// Warn about beginning validation
+	log.Warning("⚠️ Validating database options")
+
+	// Validate required fields
+	if err := validateDatabaseOptions(databaseOptions); err != nil {
+		log.Error(fmt.Sprintf("❌ Invalid database configuration: %v", err))
 		return nil, err
 	}
 
 	// Open a connection to the PostgreSQL database using the provided URI.
 	log.Info("📡 Opening connection to PostgreSQL database")
-	db, err := sql.Open("postgres", databaseURI)
+	db, err := sql.Open("postgres", getURI(databaseOptions))
 	if err != nil {
-		// Log and return an error if the connection cannot be opened.
 		log.Error(fmt.Sprintf("❌ Failed to open database connection: %v", err))
 		return nil, fmt.Errorf("unable to open database connection: %w", err)
 	}
 
-	// Configure connection pool settings for performance and resource management.
+	// Configure connection pool settings
 	log.Info("⚙️ Configuring database connection pool")
-	db.SetMaxIdleConns(50)                  // Set maximum idle connections to 50.
-	db.SetMaxOpenConns(500)                 // Set maximum open connections to 500.
-	db.SetConnMaxLifetime(2 * time.Hour)    // Set maximum connection lifetime to 2 hours.
-	db.SetConnMaxIdleTime(15 * time.Minute) // Set maximum idle time to 15 minutes.
+	db.SetMaxIdleConns(50)
+	db.SetMaxOpenConns(500)
+	db.SetConnMaxLifetime(2 * time.Hour)
+	db.SetConnMaxIdleTime(15 * time.Minute)
 
-	// Verify database connectivity with a ping.
+	// Verify connectivity
 	log.Info("🔎 Verifying database connectivity with ping")
 	if err := db.Ping(); err != nil {
-		// Log and return an error if the ping fails.
 		log.Error(fmt.Sprintf("❌ Failed to ping database: %v", err))
 		return nil, fmt.Errorf("unable to connect to the database: %w", err)
 	}
 
-	// Log successful connection to the database.
-	log.Success(fmt.Sprintf("✅ Successfully connected to database: %s", databaseName))
+	log.Success(fmt.Sprintf("✅ Successfully connected to database: %s", databaseOptions.DatabaseName))
 	return db, nil
 }
