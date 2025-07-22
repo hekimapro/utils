@@ -10,7 +10,6 @@ import (
 	"runtime"    // runtime provides access to system resources like CPU count.
 	"time"       // time provides functionality for timeouts and durations.
 
-	"github.com/go-chi/chi"          // chi provides a lightweight HTTP router.
 	"github.com/hekimapro/utils/log" // log provides colored logging utilities.
 )
 
@@ -35,9 +34,9 @@ func determineEnvironment(sslKeyPath, sslCertPath string) string {
 }
 
 // StartServer starts an HTTP or HTTPS server with graceful shutdown support.
-// Uses the provided Chi router and port, and supports TLS for Production mode.
+// Uses the provided hanlder and port, and supports TLS for Production mode.
 // Returns an error if the server fails to start or encounters issues during operation.
-func StartServer(ctx context.Context, router *chi.Mux, port, sslKeyPath, sslCertPath string) error {
+func StartServer(ctx context.Context, handler http.Handler, port, sslKeyPath, sslCertPath string) error {
 	// Set the number of OS threads to the number of CPU cores for optimal performance.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -48,12 +47,12 @@ func StartServer(ctx context.Context, router *chi.Mux, port, sslKeyPath, sslCert
 
 	// Configure the HTTP server with timeouts and header limits.
 	server := &http.Server{
-		Handler:        router,              // Use the provided Chi router.
-		Addr:           ":" + port,          // Bind to the specified port.
-		ReadTimeout:    30 * time.Second,    // Set read timeout to 30 seconds.
-		WriteTimeout:   30 * time.Second,    // Set write timeout to 30 seconds.
-		IdleTimeout:    10 * time.Second,    // Set idle timeout to 10 seconds.
-		MaxHeaderBytes: 1 << 20,             // Limit header size to 1MB.
+		Handler:        handler,
+		Addr:           ":" + port,       // Bind to the specified port.
+		ReadTimeout:    30 * time.Second, // Set read timeout to 30 seconds.
+		WriteTimeout:   30 * time.Second, // Set write timeout to 30 seconds.
+		IdleTimeout:    10 * time.Second, // Set idle timeout to 10 seconds.
+		MaxHeaderBytes: 1 << 20,          // Limit header size to 1MB.
 	}
 
 	// Create a channel to receive server errors.
@@ -72,9 +71,9 @@ func StartServer(ctx context.Context, router *chi.Mux, port, sslKeyPath, sslCert
 
 			// Configure TLS with secure settings.
 			tlsConfig := &tls.Config{
-				MinVersion:               tls.VersionTLS12,           // Enforce TLS 1.2 or higher.
-				PreferServerCipherSuites: true,                       // Prefer server-selected cipher suites.
-				CurvePreferences: []tls.CurveID{                      // Specify preferred elliptic curves.
+				MinVersion:               tls.VersionTLS12, // Enforce TLS 1.2 or higher.
+				PreferServerCipherSuites: true,             // Prefer server-selected cipher suites.
+				CurvePreferences: []tls.CurveID{ // Specify preferred elliptic curves.
 					tls.X25519,
 					tls.CurveP256,
 					tls.CurveP384,
