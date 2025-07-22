@@ -14,7 +14,7 @@ func IsDuplicateError(err error) *string {
 	var pqErr *pq.Error
 	if errors.As(err, &pqErr) {
 		if pqErr.Code == "23505" {
-			label := ExtractColumnLabel(pqErr.Constraint)
+			label := extractColumnLabel(pqErr.Constraint)
 			return &label
 		}
 	}
@@ -23,7 +23,7 @@ func IsDuplicateError(err error) *string {
 }
 
 // ExtractColumnLabel converts "users_email_address_key" to "email address"
-func ExtractColumnLabel(constraint string) string {
+func extractColumnLabel(constraint string) string {
 	constraint = strings.TrimSuffix(constraint, "_key")
 	parts := strings.Split(constraint, "_")
 

@@ -1,18 +1,20 @@
 package env
 
 import (
-	"log"
+	"errors"
 	"os"
 	"regexp"
 	"strings"
 
+	"github.com/hekimapro/utils/log"
 	"github.com/joho/godotenv"
 )
 
 func init() {
 	// Load .env file, ignore error if file doesn't exist (optional)
 	if err := godotenv.Load(); err != nil {
-		log.Printf("⚠️ .env file not found or failed to load: %v", err.Error())
+		log.Warning("⚠️ .env file not found or failed to load")
+		log.Error(err.Error())
 	}
 }
 
@@ -32,4 +34,13 @@ func toSnakeCase(input string) string {
 func GetValue(key string) string {
 	snakeKey := toSnakeCase(key)
 	return os.Getenv(snakeKey)
+}
+
+// CreateError logs the error and returns it as an error object
+func CreateError(errorMessage string) error {
+	// Log the error
+	log.Error(errorMessage)
+
+	// Return error object
+	return errors.New(errorMessage)
 }
