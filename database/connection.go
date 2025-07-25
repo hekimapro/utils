@@ -9,7 +9,7 @@ import (
 	// strings provides utilities for string manipulation.
 	"time" // time provides functionality for handling connection timeouts.
 
-	"github.com/hekimapro/utils/env"
+	"github.com/hekimapro/utils/helpers"
 	"github.com/hekimapro/utils/log" // log provides colored logging utilities.
 	"github.com/hekimapro/utils/models"
 	_ "github.com/lib/pq" // pq registers the PostgreSQL driver.
@@ -32,26 +32,26 @@ func validateDatabaseOptions(opts models.DatabaseOptions) error {
 	var missing []string
 
 	if strings.TrimSpace(opts.Username) == "" {
-		missing = append(missing, "Username")
+		missing = append(missing, "DATABASE_USERNAME")
 	}
 	if strings.TrimSpace(opts.Password) == "" {
-		missing = append(missing, "Password")
+		missing = append(missing, "DATABASE_PASSWORD")
 	}
 	if strings.TrimSpace(opts.Host) == "" {
-		missing = append(missing, "Host")
+		missing = append(missing, "DATABASE_HOST")
 	}
 	if strings.TrimSpace(opts.Port) == "" {
-		missing = append(missing, "Port")
+		missing = append(missing, "DATABASE_PORT")
 	}
 	if strings.TrimSpace(opts.DatabaseName) == "" {
-		missing = append(missing, "DatabaseName")
+		missing = append(missing, "DATABASE_NAME")
 	}
 	if strings.TrimSpace(opts.SSLMode) == "" {
-		missing = append(missing, "SSLMode")
+		missing = append(missing, "DATABASE_SSL_MODE")
 	}
 
 	if len(missing) > 0 {
-		return fmt.Errorf("missing required database option(s): %s", strings.Join(missing, ", "))
+		return fmt.Errorf(".env file is missing required database option(s): %s", strings.Join(missing, ", "))
 	}
 	return nil
 }
@@ -62,12 +62,12 @@ func validateDatabaseOptions(opts models.DatabaseOptions) error {
 func ConnectToDatabase() (*sql.DB, error) {
 
 	databaseOptions := models.DatabaseOptions{
-		Host:         env.GetValue("database host"),
-		Port:         env.GetValue("database port"),
-		DatabaseName: env.GetValue("database name"),
-		Username:     env.GetValue("database username"),
-		Password:     env.GetValue("database password"),
-		SSLMode:      env.GetValue("database ssl mode"),
+		Host:         helpers.GetENVValue("database host"),
+		Port:         helpers.GetENVValue("database port"),
+		DatabaseName: helpers.GetENVValue("database name"),
+		Username:     helpers.GetENVValue("database username"),
+		Password:     helpers.GetENVValue("database password"),
+		SSLMode:      helpers.GetENVValue("database ssl mode"),
 	}
 
 	log.Info("🔌 Starting database connection process")
