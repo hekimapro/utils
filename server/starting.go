@@ -7,9 +7,12 @@ import (
 	"fmt"        // fmt provides formatting and printing functions.
 	"net/http"   // http provides HTTP server functionality.
 	"os"         // os provides file system operations for checking SSL files.
-	"runtime"    // runtime provides access to system resources like CPU count.
-	"time"       // time provides functionality for timeouts and durations.
+	"os/signal"
+	"runtime" // runtime provides access to system resources like CPU count.
+	"syscall"
+	"time" // time provides functionality for timeouts and durations.
 
+	"github.com/hekimapro/utils/helpers"
 	"github.com/hekimapro/utils/log" // log provides colored logging utilities.
 )
 
@@ -36,12 +39,27 @@ func determineEnvironment(sslKeyPath, sslCertPath string) string {
 // StartServer starts an HTTP or HTTPS server with graceful shutdown support.
 // Uses the provided hanlder and port, and supports TLS for Production mode.
 // Returns an error if the server fails to start or encounters issues during operation.
-func StartServer(ctx context.Context, handler http.Handler, port, sslKeyPath, sslCertPath string) error {
+func StartServer(handler http.Handler) error {
+
 	// Set the number of OS threads to the number of CPU cores for optimal performance.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
+	// context
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	port := helpers.GetENVValue("port")
+	sslKeyPath := helpers.GetENVValue("ssl key path")
+	sslCertPath := helpers.GetENVValue("ssl cert path")
+
+	if port == "" {
+		port = "8080"
+		log.Warning(".env PORT is not set, defaulting to 8080")
+	}
+
 	// Determine the server environment (Production or Development).
 	env := determineEnvironment(sslKeyPath, sslCertPath)
+
 	// Log the server startup details.
 	log.Info(fmt.Sprintf("Starting %s server on port %s", env, port))
 
