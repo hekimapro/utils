@@ -135,7 +135,7 @@ func GetStringContextData(request *http.Request, key models.ContextKey) string {
 	return dataID
 }
 
-func IsValidID(providedID string) bool {
+func IsValidUUID(providedID string) bool {
 	if providedID == "" {
 		return false
 	}
@@ -210,4 +210,8 @@ func NormalizePhoneNumber(phoneNumber string, toNormal bool) string {
 	}
 
 	return phoneNumber // fallback (return as-is)
+}
+
+func IsZeroUUID(ID uuid.UUID) bool {
+	return ID.String() == "00000000-0000-0000-0000-000000000000"
 }
