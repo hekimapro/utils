@@ -112,3 +112,9 @@ type DatabaseOptions struct {
 }
 
 type ContextKey string
+
+type EncryptionConfig struct {
+	EncryptionKey        string
+	EncryptionType       string
+	InitializationVector string
+}
