@@ -152,3 +152,11 @@ func StartServer(handler http.Handler) error {
 		return err
 	}
 }
+
+func ChainMiddlewares(finalHandler http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		currentMiddleware := middlewares[i]
+		finalHandler = currentMiddleware(finalHandler)
+	}
+	return finalHandler
+}
