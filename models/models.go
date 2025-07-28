@@ -110,3 +110,5 @@ type DatabaseOptions struct {
 	SSLMode      string // e.g., "disable", "require", "verify-full"
 	DatabaseName string
 }
+
+type ContextKey string
