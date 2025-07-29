@@ -14,7 +14,7 @@ func IsDuplicateError(err error) *string {
 	var pqErr *pq.Error
 	if errors.As(err, &pqErr) {
 		if pqErr.Code == "23505" {
-			label := extractColumnLabel(pqErr.Constraint)
+			label := extractColumnLabel(pqErr.Constraint) + " already exist"
 			return &label
 		}
 	}
