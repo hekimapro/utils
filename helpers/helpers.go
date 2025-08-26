@@ -57,7 +57,7 @@ func RespondWithJSON(Response http.ResponseWriter, StatusCode int, Payload inter
 
 	// Construct the server response with the provided payload and success flag.
 	ResponseData := &models.ServerResponse{
-		Message:    Payload,
+		Data:    Payload,
 		Success:    success,
 		StatusCode: StatusCode,
 	}

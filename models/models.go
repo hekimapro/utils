@@ -55,7 +55,7 @@ type EmailDetails struct {
 type ServerResponse struct {
 	StatusCode int         `json:"status_code"`
 	Success    bool        `json:"success"` // Indicates if the operation was successful
-	Message    interface{} `json:"message"` // The response payload (e.g., string, object)
+	Data    interface{} `json:"message"` // The response payload (e.g., string, object)
 }
 type BeemSMSRecipient struct {
 	RecipientID string `json:"recipient_id"`
