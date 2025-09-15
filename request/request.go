@@ -3,6 +3,7 @@ package request
 import (
 	"bytes"         // bytes provides utilities for creating byte buffers.
 	"encoding/json" // json provides JSON encoding and decoding functions.
+	"fmt"
 
 	// errors provides utilities for creating errors.
 	"io"       // io provides interfaces for I/O operations.
@@ -133,6 +134,8 @@ func handleResponse(response *http.Response) (json.RawMessage, error) {
 
 	// Check if the status code indicates an error (not 2xx).
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		fmt.Println(response.StatusCode)
+		fmt.Println(body)
 		if err := json.Unmarshal(body, &raw); err != nil {
 			// Log and return an error if JSON unmarshaling fails.
 			log.Error("❌ Failed to unmarshal response JSON: " + err.Error())
