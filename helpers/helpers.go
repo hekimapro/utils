@@ -1,8 +1,10 @@
 package helpers
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -148,6 +150,21 @@ func IsValidUUID(providedID string) bool {
 	return true
 }
 
+func GetQueryID(request *http.Request) uuid.UUID {
+	ID := request.URL.Query().Get("id")
+	return ConvertToUUID(ID)
+}
+// It returns a string and a slice of strings.
+func GetContextData(request *http.Request, key models.ContextKey) uuid.UUID {
+	contextValue := request.Context().Value(key)
+	dataID, ok := contextValue.(string)
+	if !ok {
+		return uuid.Nil
+	}
+
+	return ConvertToUUID(dataID)
+}
+
 // Define sets of known image and video extensions
 var imageExtensions = map[string]bool{
 	".jpg":  true,
@@ -217,4 +234,21 @@ func NormalizePhoneNumber(phoneNumber string, toNormal bool) string {
 
 func IsZeroUUID(ID uuid.UUID) bool {
 	return ID.String() == "00000000-0000-0000-0000-000000000000"
+}
+
+func GenerateOTP() (int, error) {
+	// The maximum value for a 6-digit number is 999999
+	max := big.NewInt(1000000)
+
+	// Generate a random number between 0 and 999999
+	n, err := rand.Int(rand.Reader, max)
+
+	if err != nil {
+		log.Error(err.Error())
+		return 0, CreateError("failed to generate OTP")
+	}
+
+	// Ensure the number is 6 digits by adding leading zeros if necessary
+	otp := int(n.Int64())
+	return otp, nil
 }
