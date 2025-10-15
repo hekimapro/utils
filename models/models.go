@@ -48,6 +48,9 @@ type EmailDetails struct {
 	Text        string   // Plain text message body
 	HTML        string   // HTML message body
 	Attachments []string // File paths for email attachments
+	CC          []string // File paths for email CC
+	BCC         []string // File paths for email BCC
+	ReplyTo     string
 }
 
 // ServerResponse defines the structure for standardized JSON API responses
