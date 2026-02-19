@@ -113,7 +113,7 @@ func validateSSLPermissions(certPath, keyPath string) error {
 // determineEnvironment determines the server environment based on SSL file availability.
 // Returns "Production" if both SSL files exist and are valid, otherwise "Development".
 // Performs comprehensive validation of SSL files in production mode.
-func determineEnvironment(sslKeyPath, sslCertPath string) string {
+func DetermineEnvironment(sslKeyPath, sslCertPath string) string {
 	// Check if SSL key file exists
 	if _, err := os.Stat(sslKeyPath); errors.Is(err, os.ErrNotExist) {
 		log.Warning("SSL key file not found: running in Development mode")
@@ -277,7 +277,7 @@ func StartServer(handler http.Handler) error {
 	defer stop()
 
 	// Determine server environment (Production or Development)
-	env := determineEnvironment(config.SSLKeyPath, config.SSLCertPath)
+	env := DetermineEnvironment(config.SSLKeyPath, config.SSLCertPath)
 
 	// Log server startup details with configuration
 	log.Info(fmt.Sprintf("Starting %s server on port %s", env, config.Port))

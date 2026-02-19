@@ -123,20 +123,19 @@ func RespondWithJSON(w http.ResponseWriter, statusCode int, payload interface{})
 	// Determine success based on whether the status code indicates a client error.
 	success := statusCode < http.StatusBadRequest
 
-	// Pick a default message from the status code
-	message := http.StatusText(statusCode)
-	if message == "" {
-		message = "Unknown status"
-	}
+	// // Pick a default message from the status code
+	// message := http.StatusText(statusCode)
+	// if message == "" {
+	// 	message = "Unknown status"
+	// }
 
 	// Log the start of JSON response preparation with status and success details.
-	log.Info("📤 Preparing JSON response (status: " + message + ", success: " + boolToStr(success) + ")")
+	log.Info("📤 Preparing JSON response (status: " + http.StatusText(statusCode) + ", success: " + boolToStr(success) + ")")
 
 	// Construct the server response with the provided payload and success flag.
 	responseData := &models.ServerResponse{
-		Data:    payload,
 		Success: success,
-		Message: message,
+		Message: payload,
 	}
 
 	// Marshal the response data to JSON.
@@ -157,20 +156,6 @@ func RespondWithJSON(w http.ResponseWriter, statusCode int, payload interface{})
 	} else {
 		log.Success("✅ JSON response sent successfully")
 	}
-}
-
-// RespondWithError writes a standardized error response in JSON format.
-func RespondWithError(w http.ResponseWriter, statusCode int, message string) {
-	RespondWithJSON(w, statusCode, map[string]string{"error": message})
-}
-
-// RespondWithSuccess writes a standardized success response in JSON format.
-func RespondWithSuccess(w http.ResponseWriter, statusCode int, data interface{}, message string) {
-	response := map[string]interface{}{
-		"data":    data,
-		"message": message,
-	}
-	RespondWithJSON(w, statusCode, response)
 }
 
 // boolToStr returns "true" or "false" for boolean values.

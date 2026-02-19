@@ -28,10 +28,10 @@ type DatabaseConfig struct {
 // LoadDatabaseConfig loads database configuration with defaults from environment variables.
 func LoadDatabaseConfig() DatabaseConfig {
 	return DatabaseConfig{
-		MaxIdleConns:    helpers.GetENVIntValue("database max idle conns", 50),
-		MaxOpenConns:    helpers.GetENVIntValue("database max open conns", 500),
-		ConnMaxLifetime: time.Duration(helpers.GetENVIntValue("database conn max lifetime", 2)) * time.Hour,
-		ConnMaxIdleTime: time.Duration(helpers.GetENVIntValue("database conn max idle time", 15)) * time.Minute,
+		MaxIdleConns:    helpers.GetENVIntValue("database maximum idle connections", 5),
+		MaxOpenConns:    helpers.GetENVIntValue("database maximum open connections", 5),
+		ConnMaxLifetime: time.Duration(helpers.GetENVIntValue("database connection maximum lifetime", 60)) * time.Minute,
+		ConnMaxIdleTime: time.Duration(helpers.GetENVIntValue("database connection maximum idle time", 5)) * time.Minute,
 		ConnectTimeout:  time.Duration(helpers.GetENVIntValue("database connect timeout", 30)) * time.Second,
 		PingTimeout:     time.Duration(helpers.GetENVIntValue("database ping timeout", 10)) * time.Second,
 	}

@@ -56,9 +56,8 @@ type EmailDetails struct {
 // ServerResponse defines the structure for standardized JSON API responses
 // Includes a success flag and a flexible message payload
 type ServerResponse struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Success    bool        `json:"success"`
+	Message    interface{} `json:"message"`
 }
 
 type BeemSMSRecipient struct {
