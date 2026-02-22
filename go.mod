@@ -4,7 +4,9 @@ go 1.23.1
 
 require (
 	github.com/chai2010/webp v1.4.0
+	github.com/dustin/go-humanize v1.0.1
 	github.com/google/uuid v1.6.0
+	github.com/jinzhu/inflection v1.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	golang.org/x/crypto v0.32.0

@@ -18,10 +18,12 @@ import (
 	"strings"        // strings provides string manipulation utilities.
 	"time"           // time provides functionality for handling time and durations.
 
+	"github.com/dustin/go-humanize"
 	"github.com/google/uuid"            // uuid provides UUID generation and parsing.
 	"github.com/hekimapro/utils/log"    // log provides colored logging utilities.
 	"github.com/hekimapro/utils/models" // models provides data structures for server responses.
-	"github.com/joho/godotenv"          // godotenv provides .env file loading.
+	"github.com/jinzhu/inflection"
+	"github.com/joho/godotenv" // godotenv provides .env file loading.
 )
 
 func init() {
@@ -777,3 +779,17 @@ func TruncateString(s string, maxLength int) string {
 	}
 	return s[:maxLength-3] + "..."
 }
+
+func ToFormatedCurrency(value float64) string {
+	return humanize.CommafWithDigits(value, 0)
+}
+
+func ToPlural(word string) string {
+	return inflection.Plural(word)
+}
+
+func ToSingular(word string) string {
+	return inflection.Singular(word)
+}
+
+
