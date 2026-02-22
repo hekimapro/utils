@@ -34,21 +34,10 @@ func init() {
 	}
 }
 
-// toSnakeCase converts any input string to UPPER_SNAKE_CASE
-func toSnakeCase(input string) string {
-	s := strings.ReplaceAll(input, "-", "_")
-	s = strings.ReplaceAll(s, " ", "_")
-
-	re := regexp.MustCompile(`([a-z])([A-Z])`)
-	s = re.ReplaceAllString(s, "${1}_${2}")
-
-	return strings.ToUpper(s)
-}
-
 // GetENVValue loads the environment variable value for a given key (case insensitive,
 // converts input key to UPPER_SNAKE_CASE), including those loaded from .env file.
 func GetENVValue(key string) string {
-	snakeKey := toSnakeCase(key)
+	snakeKey := strings.ToUpper(ToSnakeCase(key))
 	return os.Getenv(snakeKey)
 }
 
@@ -790,6 +779,19 @@ func ToPlural(word string) string {
 
 func ToSingular(word string) string {
 	return inflection.Singular(word)
+}
+
+func ToSnakeCase(input string) string {
+	input = strings.TrimSpace(input)
+
+	// Replace spaces and hyphens with underscore
+	input = regexp.MustCompile(`[\s\-]+`).ReplaceAllString(input, "_")
+
+	// Insert underscore before capital letters
+	input = regexp.MustCompile(`([a-z0-9])([A-Z])`).ReplaceAllString(input, "${1}_${2}")
+
+	// Convert to lower case
+	return strings.ToLower(input)
 }
 
 
